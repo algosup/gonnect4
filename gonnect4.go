@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/eiannone/keyboard"
 )
@@ -9,25 +10,26 @@ import (
 const colonnes = 7
 const lignes = 6
 
-var grille [colonnes + 2][lignes + 2]string
+type Grille [colonnes + 2][lignes + 2]string
 
 func main() {
 	keyboard.Open()
 	defer keyboard.Close()
-	remplirDeVide()
-	afficher()
+
+	var grille = remplirDeVide()
+	afficher(grille)
 
 	for {
-		choisirEtJouer("X")
-		choisirEtJouer("O")
-		if matchNul() {
+		grille = choisirEtJouer(grille, "X")
+		grille = choisirEtJouer(grille, "O")
+		if matchNul(grille) {
 			fmt.Println("Match nul")
 			return
 		}
 	}
 }
 
-func afficher() {
+func afficher(grille Grille) {
 	for x := 1; x <= colonnes; x++ {
 		fmt.Print(" ")
 		fmt.Print(x)
@@ -43,48 +45,48 @@ func afficher() {
 	fmt.Println()
 }
 
-func remplirDeVide() {
+func remplirDeVide() Grille {
+	var grille Grille
 	for y := 1; y <= lignes; y++ {
 		for x := 1; x <= colonnes; x++ {
 			grille[x][y] = " "
 		}
 	}
+
+	return grille
 }
 
-func choisirEtJouer(joueur string) {
+func choisirEtJouer(grille Grille, joueur string) Grille {
 	for {
 		touche, _, _ := keyboard.GetKey()
 		var colonne = int(touche - '0')
-		if peutJouer(colonne) {
-			var ligne = jouer(colonne, joueur)
-			afficher()
-			if gagnant(colonne, ligne) {
+		if peutJouer(grille, colonne) {
+			var grille, ligne = jouer(grille, colonne, joueur)
+			afficher(grille)
+			if gagnant(grille, colonne, ligne) {
 				fmt.Println(joueur, "gagne !")
-				return
+				os.Exit(0)
 			}
-			if matchNul() {
-				fmt.Println("Match nul")
-				return
-			}
-			break
+
+			return grille
 		} else {
 			fmt.Println("Choisissez une autre colonne")
 		}
 	}
 }
 
-func jouer(colonne int, joueur string) int {
+func jouer(grille Grille, colonne int, joueur string) (Grille, int) {
 	for y := lignes; y >= 1; y-- {
 		if grille[colonne][y] == " " {
 			grille[colonne][y] = joueur
-			return y
+			return grille, y
 		}
 	}
 
-	return -1
+	panic("ne peut pas jouer")
 }
 
-func peutJouer(colonne int) bool {
+func peutJouer(grille Grille, colonne int) bool {
 	if grille[colonne][1] == " " {
 		return true
 	}
@@ -92,7 +94,7 @@ func peutJouer(colonne int) bool {
 	return false
 }
 
-func matchNul() bool {
+func matchNul(grille Grille) bool {
 	for x := 1; x <= colonnes; x++ {
 		if grille[x][1] == " " {
 			return false
@@ -101,24 +103,24 @@ func matchNul() bool {
 	return true
 }
 
-func gagnant(colonne int, ligne int) bool {
-	if mesurer(colonne, ligne, 1, 0) >= 4 {
+func gagnant(grille Grille, colonne int, ligne int) bool {
+	if mesurer(grille, colonne, ligne, 1, 0) >= 4 {
 		return true
 	}
-	if mesurer(colonne, ligne, 0, 1) >= 4 {
+	if mesurer(grille, colonne, ligne, 0, 1) >= 4 {
 		return true
 	}
-	if mesurer(colonne, ligne, 1, -1) >= 4 {
+	if mesurer(grille, colonne, ligne, 1, -1) >= 4 {
 		return true
 	}
-	if mesurer(colonne, ligne, 1, 1) >= 4 {
+	if mesurer(grille, colonne, ligne, 1, 1) >= 4 {
 		return true
 	}
 
 	return false
 }
 
-func mesurer(colonne int, ligne int, sensColonne int, sensLigne int) int {
+func mesurer(grille Grille, colonne int, ligne int, sensColonne int, sensLigne int) int {
 	var joueur = grille[colonne][ligne]
 	for grille[colonne+sensColonne][ligne+sensLigne] == joueur {
 		colonne = colonne + sensColonne
